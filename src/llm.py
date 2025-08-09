@@ -35,4 +35,3 @@ def analyze_document(document_text: str, user_prompt: str) -> str:
         return response.text
     except Exception as e:
         return f"Error calling LLM: {e}"
-
