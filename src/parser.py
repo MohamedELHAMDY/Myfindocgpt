@@ -38,4 +38,3 @@ def parse_uploaded_file(uploaded_file) -> str:
         return string_data[:max_chars]
         
     return string_data
-
