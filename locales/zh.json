@@ -1,0 +1,17 @@
+{
+  "app_title": "FinDocGPT: 金融文档分析师",
+  "subtitle": "一个由人工智能驱动的金融分析师，用于解析、分析和总结文档。",
+  "section_1_header": "1. 上传文档或粘贴文本",
+  "upload_label": "上传 PDF、TXT 或 HTML 文件：",
+  "upload_formats": ["pdf", "txt", "html"],
+  "or_text": "或者，在此处粘贴文档文本：",
+  "section_2_header": "2. 向人工智能提问有关文档的问题",
+  "prompt_label": "在此处输入您的分析提示：",
+  "prompt_placeholder": "例如，“用3个要点总结主要风险。”，“上一财年的总收入是多少？”，“分析本报告的情绪。”",
+  "analyze_button": "分析文档",
+  "loading_message": "正在用人工智能分析您的文档...",
+  "result_header": "✨ 分析结果",
+  "error_file_upload": "请上传文件或粘贴文本进行分析。",
+  "error_prompt": "请输入分析提示。",
+  "disclaimer": "⚠️ **免责声明：** 本工具仅用于演示目的，不应用于做出财务决策。"
+}

@@ -1,0 +1,17 @@
+{
+  "app_title": "FinDocGPT: Financial Document Analyst",
+  "subtitle": "An AI-powered financial analyst that parses, analyzes, and summarizes documents.",
+  "section_1_header": "1. Upload a Document or Paste Text",
+  "upload_label": "Upload a PDF, TXT, or HTML file:",
+  "upload_formats": ["pdf", "txt", "html"],
+  "or_text": "Or, paste the document text here:",
+  "section_2_header": "2. Ask the AI a question about the document",
+  "prompt_label": "Enter your analysis prompt here:",
+  "prompt_placeholder": "e.g., 'Summarize the main risks in 3 bullet points.', 'What is the total revenue for the latest fiscal year?', 'Analyze the sentiment of this report.'",
+  "analyze_button": "Analyze Document",
+  "loading_message": "Analyzing your document with AI...",
+  "result_header": "✨ Analysis Result",
+  "error_file_upload": "Please upload a file or paste text to analyze.",
+  "error_prompt": "Please enter a prompt for the analysis.",
+  "disclaimer": "⚠️ **Disclaimer:** This tool is for demonstration purposes only and should not be used for making financial decisions."
+}

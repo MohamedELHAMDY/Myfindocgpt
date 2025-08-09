@@ -1,0 +1,17 @@
+{
+  "app_title": "FinDocGPT: Analista de Documentos Financeiros",
+  "subtitle": "Um analista financeiro com IA que analisa e resume documentos.",
+  "section_1_header": "1. Carregar um Documento ou Colar Texto",
+  "upload_label": "Carregar um arquivo PDF, TXT ou HTML:",
+  "upload_formats": ["pdf", "txt", "html"],
+  "or_text": "Ou, cole o texto do documento aqui:",
+  "section_2_header": "2. Faça uma pergunta à IA sobre o documento",
+  "prompt_label": "Insira sua solicitação de análise aqui:",
+  "prompt_placeholder": "por ex., 'Resuma os principais riscos em 3 pontos.', 'Qual é a receita total do último ano fiscal?', 'Analise o sentimento deste relatório.'",
+  "analyze_button": "Analisar Documento",
+  "loading_message": "Analisando seu documento com IA...",
+  "result_header": "✨ Resultado da Análise",
+  "error_file_upload": "Por favor, carregue um arquivo ou cole texto para analisar.",
+  "error_prompt": "Por favor, insira uma solicitação para a análise.",
+  "disclaimer": "⚠️ **Aviso:** Esta ferramenta é apenas para fins de demonstração e não deve ser usada para tomar decisões financeiras."
+}
