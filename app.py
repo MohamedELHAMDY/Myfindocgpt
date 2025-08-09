@@ -1,46 +1,40 @@
-# app.py
-import streamlit as st
+# src/llm.py
 import os
-from src.llm import analyze_document
-from src.parser import parse_uploaded_file
+import json
+from google import genai
+from google.genai import types
+from dotenv import load_dotenv
 
-# Set up the Streamlit page configuration
-st.set_page_config(page_title="FinDocGPT", layout="wide")
-st.title("📊 FinDocGPT – AI Document Analyst")
+# Load environment variables from .env file
+load_dotenv()
 
-st.markdown("---")
+# Configure the Gemini API key
+try:
+    # Use the os.getenv function to get the API key from the environment variable
+    client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
+except Exception as e:
+    # This will now correctly show an error if the API key is not found
+    print(f"Error initializing the Gemini API client: {e}")
 
-# User input: Upload file or paste text
-st.subheader("1. Upload or paste your document")
-uploaded_file = st.file_uploader("Upload a financial report (TXT, HTML, PDF)", type=["txt", "html", "pdf"])
-pasted_text = st.text_area("Or, paste the document text here:", height=300)
+# The model name is now a parameter to generate_content
+MODEL_NAME = "gemini-1.5-flash"
 
-document_text = ""
-if uploaded_file:
-    # Use the parser to get the text from the uploaded file
-    document_text = parse_uploaded_file(uploaded_file)
-elif pasted_text:
-    document_text = pasted_text
+def analyze_document(document_text: str, user_prompt: str) -> str:
+    """
+    Analyzes a given document text based on a user-provided prompt.
+    This function replaces the specific analysis functions for 10-K sections.
+    """
+    # The prompt now combines the user's question with the document text.
+    # This makes the analysis generic and adaptable to any user query.
+    prompt = f"{user_prompt}\n\nDocument Text:\n{document_text}"
 
-# User input: The analysis prompt
-st.subheader("2. Ask the AI a question about the document")
-user_prompt = st.text_area(
-    "Enter your analysis prompt here (e.g., 'Summarize the main risks in 3 bullet points.', 'What is the total revenue for the latest fiscal year?', 'Analyze the sentiment of this report.')"
-)
+    try:
+        # Use the client.models.generate_content method
+        response = client.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt
+        )
+        return response.text
+    except Exception as e:
+        return f"Error calling LLM: {e}"
 
-# Analysis button
-if st.button("Analyze"):
-    if not document_text:
-        st.error("Please upload a file or paste text to analyze.")
-    elif not user_prompt:
-        st.error("Please enter a prompt for the analysis.")
-    else:
-        with st.spinner("Analyzing your document with AI..."):
-            # Call the new generic analysis function
-            analysis_result = analyze_document(document_text, user_prompt)
-            st.subheader("✨ Analysis Result")
-            st.write(analysis_result)
-
-st.markdown("---")
-st.markdown("⚠️ **Disclaimer:** This tool is for demonstration purposes only and should not be used for making financial decisions.")
-st.markdown("This application uses the Gemini API.")
