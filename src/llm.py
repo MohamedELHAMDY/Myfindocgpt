@@ -10,8 +10,10 @@ load_dotenv()
 
 # Configure the Gemini API key
 try:
-    client = genai.Client()
+    # Use the os.getenv function to get the API key from the environment variable
+    client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
 except Exception as e:
+    # This will now correctly show an error if the API key is not found
     print(f"Error initializing the Gemini API client: {e}")
 
 # The model name is now a parameter to generate_content
@@ -35,3 +37,4 @@ def analyze_document(document_text: str, user_prompt: str) -> str:
         return response.text
     except Exception as e:
         return f"Error calling LLM: {e}"
+
