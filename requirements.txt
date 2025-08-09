@@ -1,4 +1,4 @@
 streamlit
 google-genai>=1.0.0
 python-dotenv
-PyMuPDF
+PyMuPDF==1.23.21
