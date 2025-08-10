@@ -1,4 +1,4 @@
-# app.py - Non-Chat Version
+# app.py - Optimized Non-Chat Version
 import streamlit as st
 import os
 import json
@@ -22,6 +22,8 @@ LANGUAGES = {
     "hi": "हिन्दी"
 }
 
+# Use Streamlit's cache to load strings only once per language selection
+@st.cache_data
 def load_strings(lang_code):
     """Load translation strings from locales folder."""
     file_path = os.path.join(LOCALE_DIR, f"{lang_code}.json")
@@ -97,14 +99,22 @@ st.markdown("""
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 MODEL_NAME = "gemini-1.5-flash"
 
-def get_gemini_response(prompt_parts):
+# Define the analysis function to encapsulate the logic
+def analyze_document(document_text, user_prompt, selected_lang_code):
     """
-    Sends a list of prompt parts to the Gemini API and returns the response.
-    Includes robust error handling and retries.
+    Sends a combined prompt to the Gemini API and returns the analysis result.
+    Includes robust error handling and prompt construction.
     """
+    full_prompt = (
+        f"You are a financial analyst. The user has provided a document and a question. "
+        f"Keep your response concise and to the point. The user's language preference is '{selected_lang_code}'.\n\n"
+        f"Document: {document_text}\n\n"
+        f"User's Question: {user_prompt}"
+    )
+    
     try:
         model = genai.GenerativeModel(MODEL_NAME)
-        response = model.generate_content(prompt_parts)
+        response = model.generate_content(full_prompt)
         if response.candidates and response.candidates[0].content.parts:
             return response.candidates[0].content.parts[0].text
         else:
@@ -113,6 +123,10 @@ def get_gemini_response(prompt_parts):
         return "I am sorry, but your prompt was flagged for safety. Please try rephrasing."
     except Exception as e:
         return f"An error occurred: {e}. Please check your API key and try again."
+
+# Callback function to set the prompt text
+def set_prompt(prompt_text):
+    st.session_state.user_prompt = prompt_text
 
 # ------------------------------
 #   UI Layout and Session State
@@ -194,10 +208,13 @@ quick_prompts = [
     strings.get("prompt_figures", "Extract all financial figures in a table.")
 ]
 for i, prompt_text in enumerate(quick_prompts):
-    if prompt_cols[i].button(prompt_text, key=f"quick_prompt_{i}"):
-        st.session_state.user_prompt = prompt_text
-        # Rerun to update the text_area with the new prompt
-        st.rerun()
+    # Use a callback function to set the prompt, avoiding the need for a full rerun
+    prompt_cols[i].button(
+        prompt_text, 
+        key=f"quick_prompt_{i}",
+        on_click=set_prompt,
+        args=(prompt_text,)
+    )
 
 user_prompt = st.text_area(
     strings.get("prompt_label", "Enter your analysis prompt here:"),
@@ -215,13 +232,7 @@ if st.button(strings.get("analyze_button", "Analyze Document")):
         st.error(strings.get("error_prompt", "Please enter a prompt for the analysis."))
     else:
         with st.spinner(strings.get("loading_message", "Analyzing your document with AI...")):
-            full_prompt = (
-                f"You are a financial analyst. The user has provided a document and a question. "
-                f"Keep your response concise and to the point. The user's language preference is '{selected_lang_code}'.\n\n"
-                f"Document: {st.session_state.document_text}\n\n"
-                f"User's Question: {user_prompt}"
-            )
-            analysis_result = get_gemini_response(full_prompt)
+            analysis_result = analyze_document(st.session_state.document_text, user_prompt, selected_lang_code)
             st.session_state.analysis_result = analysis_result
 
 # Display analysis result
