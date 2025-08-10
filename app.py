@@ -1,15 +1,3 @@
-# The following is the updated requirements.txt file with the missing dependency.
-# This file should be placed in the same directory as app.py.
-
-# requirements.txt
-streamlit
-google-generativeai
-python-dotenv
-PyMuPDF
-streamlit_option_menu
-
-# ---
-
 # app.py - Fully Optimized Version
 import streamlit as st
 import os
@@ -152,13 +140,8 @@ st.markdown("""
 # ======================================================
 
 # Configure Gemini API
-if "GOOGLE_API_KEY" in st.secrets:
-    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-    MODEL_NAME = "gemini-1.5-flash"
-else:
-    st.error("Please set the GOOGLE_API_KEY in your Streamlit secrets.")
-    st.stop()
-
+genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+MODEL_NAME = "gemini-1.5-flash"
 
 def api_call_with_backoff(func, *args, **kwargs):
     """Wrapper to handle API calls with exponential backoff and retries."""
