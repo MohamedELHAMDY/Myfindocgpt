@@ -2,14 +2,14 @@
 import streamlit as st
 import os
 import json
-from src.llm import analyze_document
+import google.generativeai as genai
 from src.parser import parse_uploaded_file
 
-# --- Language & Configuration Setup ---
-# The i18n files are in a 'locales' directory.
+# ------------------------------
+#   Language & Configuration Setup
+# ------------------------------
 LOCALE_DIR = "locales"
-# Supported languages for the dropdown.
-# The keys correspond to the file names in the 'locales' directory.
+
 LANGUAGES = {
     "en": "English",
     "es": "Español",
@@ -23,20 +23,22 @@ LANGUAGES = {
 }
 
 def load_strings(lang_code):
-    """Loads a JSON file with strings for the given language code."""
+    """Load translation strings from locales folder."""
     file_path = os.path.join(LOCALE_DIR, f"{lang_code}.json")
     if os.path.exists(file_path):
         with open(file_path, "r", encoding="utf-8") as f:
             return json.load(f)
     return {}
 
-# Set up the Streamlit page configuration with a wide layout
+# ------------------------------
+#   Configure Page
+# ------------------------------
 st.set_page_config(page_title="FinDocGPT", layout="wide")
 
-# --- Custom CSS for a more appealing look (unchanged) ---
+# Custom CSS
 st.markdown("""
 <style>
-    .reportview-container .main .block-container{
+    .reportview-container .main .block-container {
         max-width: 1200px;
         padding-top: 2rem;
         padding-right: 2rem;
@@ -78,8 +80,31 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- UI Setup ---
-# Language selection dropdown in the sidebar
+# ------------------------------
+#   Configure Gemini API
+# ------------------------------
+genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+MODEL_NAME = "gemini-1.5-flash"
+
+def analyze_document(document_text: str, user_prompt: str, lang_code: str) -> str:
+    """Send the document and prompt to Gemini API."""
+    prompt = (
+        f"The user has requested the response in the language with code '{lang_code}'.\n"
+        f"Please provide the analysis in this language.\n\n"
+        f"Prompt: {user_prompt}\n\n"
+        f"Document Text:\n{document_text}"
+    )
+    try:
+        model = genai.GenerativeModel(MODEL_NAME)
+        response = model.generate_content(prompt)
+        return response.text
+    except Exception as e:
+        return f"Error calling LLM: {e}"
+
+# ------------------------------
+#   UI Layout
+# ------------------------------
+# Sidebar language selection
 st.sidebar.title("Language")
 selected_lang_name = st.sidebar.selectbox("Choose a language:", list(LANGUAGES.values()))
 selected_lang_code = [key for key, value in LANGUAGES.items() if value == selected_lang_name][0]
@@ -90,7 +115,9 @@ st.title(strings.get("app_title", "FinDocGPT"))
 st.markdown(f"### {strings.get('subtitle', 'AI-powered financial analyst.')}")
 st.markdown("---")
 
-# --- Document Upload Section ---
+# ------------------------------
+#   Document Upload Section
+# ------------------------------
 st.subheader(strings.get("section_1_header", "1. Upload a Document or Paste Text"))
 
 col1, col2 = st.columns(2)
@@ -117,7 +144,9 @@ elif pasted_text:
 
 st.markdown("---")
 
-# --- Analysis Prompt Section ---
+# ------------------------------
+#   Analysis Prompt Section
+# ------------------------------
 st.subheader(strings.get("section_2_header", "2. Ask the AI a question about the document"))
 user_prompt = st.text_area(
     strings.get("prompt_label", "Enter your analysis prompt here:"),
@@ -126,8 +155,9 @@ user_prompt = st.text_area(
     key="prompt_area"
 )
 
-# --- Analysis Button Section ---
-st.markdown("")  # Add some space
+# ------------------------------
+#   Analysis Button
+# ------------------------------
 if st.button(strings.get("analyze_button", "Analyze Document")):
     if not document_text:
         st.error(strings.get("error_file_upload", "Please upload a file or paste text to analyze."))
@@ -135,46 +165,14 @@ if st.button(strings.get("analyze_button", "Analyze Document")):
         st.error(strings.get("error_prompt", "Please enter a prompt for the analysis."))
     else:
         with st.spinner(strings.get("loading_message", "Analyzing your document with AI...")):
-            # Pass the user's prompt and the selected language code to the analysis function
             analysis_result = analyze_document(document_text, user_prompt, selected_lang_code)
             st.subheader(strings.get("result_header", "✨ Analysis Result"))
             st.write(analysis_result)
 
 st.markdown("---")
 
-# --- Disclaimer ---
-st.markdown(strings.get("disclaimer", "⚠️ **Disclaimer:** This tool is for demonstration purposes only and should not be used for making financial decisions."))
-
-
-# src/llm.py
-import os
-import json
-from google import genai
-from google.genai import types
-from dotenv import load_dotenv
-
-load_dotenv()
-
-try:
-    client = genai.Client()
-except Exception as e:
-    print(f"Error initializing the Gemini API client: {e}")
-
-MODEL_NAME = "gemini-1.5-flash"
-
-def analyze_document(document_text: str, user_prompt: str, lang_code: str) -> str:
-    """
-    Analyzes a given document text based on a user-provided prompt.
-    The response is instructed to be in the language specified by lang_code.
-    """
-    # The prompt now includes a clear instruction for the model to respond in the selected language.
-    prompt = f"The user has requested the response in the language with code '{lang_code}'. Please provide the analysis in this language. Prompt: {user_prompt}\n\nDocument Text:\n{document_text}"
-
-    try:
-        response = client.models.generate_content(
-            model=MODEL_NAME,
-            contents=prompt
-        )
-        return response.text
-    except Exception as e:
-        return f"Error calling LLM: {e}"
+# Disclaimer
+st.markdown(strings.get(
+    "disclaimer",
+    "⚠️ **Disclaimer:** This tool is for demonstration purposes only and should not be used for making financial decisions."
+))
