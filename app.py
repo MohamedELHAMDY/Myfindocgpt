@@ -7,7 +7,6 @@ from src.parser import parse_uploaded_file # Assumes this file exists for parsin
 import pandas as pd
 import time
 import plotly.express as px
-from streamlit_option_menu import option_menu # Using a library for a better sidebar menu
 
 # ======================================================
 #   Application Configuration
@@ -49,39 +48,28 @@ st.set_page_config(page_title="FinDocGPT", layout="wide", initial_sidebar_state=
 
 # Custom CSS for a modern and polished look
 st.markdown("""
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 <style>
-    :root {
-        --primary-color: #3498db;
-        --secondary-color: #2c3e50;
-        --background-color: #ecf0f1;
-        --container-bg-color: #ffffff;
-        --button-hover-color: #2980b9;
-        --text-color: #34495e;
-    }
     .reportview-container .main .block-container {
         max-width: 1200px;
         padding: 2rem;
     }
     h1 {
-        color: var(--primary-color);
-        font-family: 'Poppins', sans-serif;
+        color: #2c3e50;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
         font-weight: 700;
         text-align: center;
         letter-spacing: -1px;
     }
     h3 {
-        color: var(--secondary-color);
-        font-family: 'Poppins', sans-serif;
+        color: #34495e;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
         font-weight: 600;
-        border-bottom: 2px solid var(--background-color);
+        border-bottom: 2px solid #ecf0f1;
         padding-bottom: 10px;
-        margin-top: 1.5rem;
     }
     .stButton>button {
         color: white;
-        background-color: var(--primary-color);
+        background-color: #3498db;
         border-radius: 12px;
         border: none;
         padding: 10px 20px;
@@ -89,47 +77,39 @@ st.markdown("""
         font-weight: bold;
         transition: all 0.3s ease;
         cursor: pointer;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
     .stButton>button:hover {
-        background-color: var(--button-hover-color);
+        background-color: #2980b9;
         transform: translateY(-2px);
-        box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
-    }
-    .stDownloadButton>button {
-        background-color: #2ecc71;
-    }
-    .stDownloadButton>button:hover {
-        background-color: #27ae60;
     }
     .stSpinner > div > div {
-        border-top-color: var(--primary-color) !important;
+        border-top-color: #3498db !important;
     }
     .result-container {
-        border: 1px solid var(--background-color);
+        border: 1px solid #e0e0e0;
         border-radius: 10px;
-        padding: 1.5rem;
+        padding: 1rem;
         margin-top: 1rem;
-        background-color: var(--container-bg-color);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        background-color: #f8f8f8;
     }
     .quick-prompt-button {
-        background-color: var(--background-color);
-        color: var(--text-color);
+        background-color: #f0f4f8;
+        color: #34495e;
         border: 1px solid #dcdcdc;
         border-radius: 8px;
         padding: 8px 12px;
         font-size: 14px;
         margin-right: 5px;
         cursor: pointer;
-        transition: all 0.2s ease;
     }
     .quick-prompt-button:hover {
-        background-color: #d8e1e7;
+        background-color: #e9eef2;
     }
-    .stTextInput>div>div>input, .stTextArea>div>div>textarea {
-        border-radius: 8px;
-        border: 1px solid #ccc;
+    .stDownloadButton > button {
+        background-color: #2ecc71;
+    }
+    .stDownloadButton > button:hover {
+        background-color: #27ae60;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -147,24 +127,17 @@ def api_call_with_backoff(func, *args, **kwargs):
     """Wrapper to handle API calls with exponential backoff and retries."""
     retries = 5
     delay = 1
-    progress_bar = st.empty()
-    status_text = st.empty()
-    
     for i in range(retries):
         try:
-            status_text.info(f"Attempt {i + 1}/{retries}: Analyzing document with AI...")
-            progress_bar.progress((i + 1) / retries)
             return func(*args, **kwargs)
         except Exception as e:
             if i < retries - 1:
-                status_text.warning(f"API call failed. Retrying in {delay}s...")
+                st.warning(f"API call failed. Retrying in {delay}s... (Attempt {i + 1}/{retries})")
                 time.sleep(delay)
                 delay *= 2
             else:
-                status_text.error(f"Final API call failed after {retries} attempts: {e}")
+                st.error(f"Final API call failed after {retries} attempts: {e}")
                 raise
-    progress_bar.empty()
-    status_text.empty()
 
 def analyze_document(document_text, user_prompt, selected_lang_code):
     """
@@ -282,8 +255,6 @@ if "dynamic_prompts" not in st.session_state:
     st.session_state.dynamic_prompts = []
 if "document_summary" not in st.session_state:
     st.session_state.document_summary = []
-if "chart_type" not in st.session_state:
-    st.session_state.chart_type = "Bar Chart"
 
 # Callback function to set the prompt text from a button click
 def set_prompt(prompt_text):
@@ -318,16 +289,14 @@ with upload_col:
     uploaded_file = st.file_uploader(
         strings.get("upload_label", "Upload a PDF, TXT, HTML, DOCX, or XLSX file:"),
         type=["pdf", "txt", "html", "docx", "xlsx"],
-        key="file_uploader",
-        disabled=st.session_state.is_document_loaded
+        key="file_uploader"
     )
 
 with text_col:
     pasted_text = st.text_area(
         strings.get("or_text", "Or, paste the document text here:"),
         height=200,
-        key="text_area",
-        disabled=st.session_state.is_document_loaded
+        key="text_area"
     )
 
 # Logic to handle document loading
@@ -345,7 +314,7 @@ elif pasted_text and not st.session_state.is_document_loaded:
     st.success("Text pasted successfully!")
 
 # Reset button to clear all session state
-if st.button("Reset Session", help="Clear the current document and analysis."):
+if st.button("Reset Session"):
     st.session_state.clear()
     st.rerun()
 
@@ -358,17 +327,14 @@ st.subheader(strings.get("section_2_header", "2. Ask the AI a question about the
 
 # Dynamic prompts are generated only after a document is loaded
 if st.session_state.is_document_loaded:
-    st.markdown("##### Dynamic Prompts: <i class='fas fa-lightbulb'></i>")
-    st.markdown("<p style='font-size: 14px; color: #666;'>These prompts were generated by the AI based on the document's content.</p>", unsafe_allow_html=True)
+    st.markdown("##### Dynamic Prompts:")
     st.session_state.dynamic_prompts = generate_dynamic_prompts(st.session_state.document_text)
 
     prompt_cols = st.columns(3)
     for i, prompt_text in enumerate(st.session_state.dynamic_prompts):
-        with prompt_cols[i]:
-            st.button(prompt_text, key=f"quick_prompt_{i}", on_click=set_prompt, args=(prompt_text,))
+        prompt_cols[i].button(prompt_text, key=f"quick_prompt_{i}", on_click=set_prompt, args=(prompt_text,))
 else:
-    st.markdown("##### Quick Prompts: <i class='fas fa-question-circle'></i>")
-    st.markdown("<p style='font-size: 14px; color: #666;'>Upload a document to see more specific prompts!</p>", unsafe_allow_html=True)
+    st.markdown("##### Quick Prompts (Upload a document to see more!):")
     prompt_cols = st.columns(3)
     static_prompts = [
         strings.get("prompt_summarize", "Summarize the main points."),
@@ -376,8 +342,7 @@ else:
         strings.get("prompt_figures", "Extract all financial figures in a table.")
     ]
     for i, prompt_text in enumerate(static_prompts):
-        with prompt_cols[i]:
-            st.button(prompt_text, key=f"quick_prompt_{i}", on_click=set_prompt, args=(prompt_text,))
+        prompt_cols[i].button(prompt_text, key=f"quick_prompt_{i}", on_click=set_prompt, args=(prompt_text,))
 
 user_prompt = st.text_area(
     strings.get("prompt_label", "Enter your analysis prompt here:"),
@@ -394,10 +359,8 @@ if st.button(strings.get("analyze_button", "Analyze Document")):
     elif not user_prompt:
         st.error(strings.get("error_prompt", "Please enter a prompt for the analysis."))
     else:
-        # Progress bar and status messages for a better user experience
-        with st.empty():
-            with st.spinner(strings.get("loading_message", "Analyzing your document with AI...")):
-                st.session_state.analysis_result = analyze_document(st.session_state.document_text, user_prompt, selected_lang_code)
+        with st.spinner(strings.get("loading_message", "Analyzing your document with AI...")):
+            st.session_state.analysis_result = analyze_document(st.session_state.document_text, user_prompt, selected_lang_code)
 
 # ------------------------------
 #   Analysis Result Section
@@ -413,41 +376,28 @@ if st.session_state.analysis_result:
                 st.dataframe(df, use_container_width=True)
 
                 if len(df.columns) >= 2:
-                    st.markdown("##### Data Visualization <i class='fas fa-chart-bar'></i>", unsafe_allow_html=True)
                     numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
                     non_numeric_cols = df.select_dtypes(exclude=['number']).columns.tolist()
-                    
-                    if numeric_cols and non_numeric_cols:
-                        chart_type = st.selectbox(
-                            "Select a Chart Type:",
-                            ("Bar Chart", "Line Chart", "Scatter Plot"),
-                            key="chart_type"
-                        )
-                        x_col = st.selectbox(
-                            "Select X-axis:",
-                            options=non_numeric_cols,
-                            key="x_col"
-                        )
-                        y_col = st.selectbox(
-                            "Select Y-axis:",
-                            options=numeric_cols,
-                            key="y_col"
-                        )
 
-                        if chart_type == "Bar Chart":
-                            fig = px.bar(df, x=x_col, y=y_col, color=y_col, color_continuous_scale=px.colors.sequential.Viridis, labels={col: col.replace('_', ' ').title() for col in df.columns})
-                        elif chart_type == "Line Chart":
-                            fig = px.line(df, x=x_col, y=y_col, labels={col: col.replace('_', ' ').title() for col in df.columns})
-                        elif chart_type == "Scatter Plot":
-                            fig = px.scatter(df, x=x_col, y=y_col, color=y_col, labels={col: col.replace('_', ' ').title() for col in df.columns})
-                        
-                        fig.update_layout(title_text=f"{chart_type} of {y_col} by {x_col}", title_x=0.5, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(family="Poppins", size=14, color="#333"), xaxis={'categoryorder':'total descending'}, hovermode="x unified", showlegend=False)
+                    if numeric_cols and non_numeric_cols:
+                        x_col = non_numeric_cols[0]
+                        y_col = numeric_cols[0]
+                        st.markdown("##### Data Visualization")
+                        fig = px.bar(
+                            df, x=x_col, y=y_col,
+                            title=f"Distribution of {y_col} by {x_col}",
+                            color=y_col,
+                            color_continuous_scale=px.colors.sequential.Viridis,
+                            labels={col: col.replace('_', ' ').title() for col in df.columns},
+                            hover_data=df.columns
+                        )
+                        fig.update_layout(title_x=0.5, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(family="Helvetica", size=14, color="#333"), xaxis={'categoryorder':'total descending'}, hovermode="x unified", showlegend=False)
                         st.plotly_chart(fig, use_container_width=True)
-                
+
                 csv = df.to_csv(index=False).encode('utf-8')
                 st.download_button(label="Download as CSV", data=csv, file_name='analysis_results.csv', mime='text/csv')
             except Exception as e:
-                st.error(f"Could not display the table or chart correctly: {e}")
+                st.error(f"Could not display the table correctly: {e}")
                 st.markdown(f'<div class="result-container">{st.session_state.analysis_result}</div>', unsafe_allow_html=True)
     else:
         with result_container:
@@ -465,7 +415,7 @@ if st.session_state.is_document_loaded:
         st.session_state.document_summary = generate_document_summary(st.session_state.document_text)
 
         if st.session_state.document_summary:
-            st.markdown("##### Key Sections: <i class='fas fa-clipboard-list'></i>", unsafe_allow_html=True)
+            st.markdown("##### Key Sections:")
             summary_cols = st.columns(len(st.session_state.document_summary))
             for i, section in enumerate(st.session_state.document_summary):
                 with summary_cols[i]:
