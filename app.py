@@ -1,4 +1,4 @@
-# app.py - Optimized and Enhanced Version
+# app.py - Optimized and Enhanced Version with Reordered UI
 import streamlit as st
 import os
 import json
@@ -298,25 +298,8 @@ if st.button("Reset Session"):
 st.markdown("---")
 
 # ------------------------------
-#   Document Navigation and Analysis Prompt Section
+#   Analysis Prompt Section
 # ------------------------------
-if st.session_state.is_document_loaded:
-    st.subheader("Document Content and Navigation")
-    with st.expander("View Document and Summary"):
-        # Generate and cache document summary
-        st.session_state.document_summary = generate_document_summary(st.session_state.document_text)
-        
-        # Display clickable summaries
-        if st.session_state.document_summary:
-            st.markdown("##### Key Sections:")
-            for section in st.session_state.document_summary:
-                if st.button(f"**{section['title']}**", key=f"section_btn_{section['title']}"):
-                    st.session_state.document_text = section['content_snippet']
-                    st.info(f"Showing content snippet for: **{section['title']}**")
-        
-        # Display the full document content in a read-only area
-        st.text_area("Full Document Text", value=st.session_state.document_text, height=500, disabled=True)
-
 st.subheader(strings.get("section_2_header", "2. Ask the AI a question about the document"))
 
 # Dynamically generate prompts if a document is loaded
@@ -377,15 +360,15 @@ if st.session_state.analysis_result:
                 # Attempt to find a numerical column and a non-numerical one
                 numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
                 non_numeric_cols = df.select_dtypes(exclude=['number']).columns.tolist()
-                
+
                 if numeric_cols and non_numeric_cols:
                     x_col = non_numeric_cols[0]
                     y_col = numeric_cols[0]
-                    
+
                     st.markdown("##### Data Visualization")
                     fig = px.bar(df, x=x_col, y=y_col, title=f"{y_col} by {x_col}")
                     st.plotly_chart(fig, use_container_width=True)
-            
+
             # Add a download button for the table
             csv = df.to_csv(index=False)
             st.download_button(
@@ -406,6 +389,28 @@ if st.session_state.analysis_result:
             file_name='analysis_results.txt',
             mime='text/plain',
         )
+
+st.markdown("---")
+
+# ------------------------------
+#   Document Navigation and Content Section
+# ------------------------------
+if st.session_state.is_document_loaded:
+    st.subheader("Document Content and Navigation")
+    with st.expander("View Document and Summary"):
+        # Generate and cache document summary
+        st.session_state.document_summary = generate_document_summary(st.session_state.document_text)
+        
+        # Display clickable summaries
+        if st.session_state.document_summary:
+            st.markdown("##### Key Sections:")
+            for section in st.session_state.document_summary:
+                if st.button(f"**{section['title']}**", key=f"section_btn_{section['title']}"):
+                    st.session_state.document_text = section['content_snippet']
+                    st.info(f"Showing content snippet for: **{section['title']}**")
+        
+        # Display the full document content in a read-only area
+        st.text_area("Full Document Text", value=st.session_state.document_text, height=500, disabled=True)
 
 st.markdown("---")
 
