@@ -6,6 +6,7 @@ import google.generativeai as genai
 from src.parser import parse_uploaded_file # Assuming this file exists and works as intended
 import pandas as pd
 import time
+import plotly.express as px
 
 # ------------------------------
 #   Language & Configuration Setup
@@ -165,8 +166,7 @@ def generate_dynamic_prompts(document_text):
     """Generates three dynamic prompts based on the document's content."""
     if not document_text:
         return []
-    
-    # Simple retry mechanism with exponential backoff
+
     retries = 3
     delay = 1
     for i in range(retries):
@@ -189,6 +189,36 @@ def generate_dynamic_prompts(document_text):
             st.warning(f"Attempt {i+1} failed to generate dynamic prompts. Retrying...")
     return ["Summarize the main points.", "Identify key risks and opportunities.", "Extract all financial figures in a table."]
 
+@st.cache_data
+def generate_document_summary(document_text):
+    """Generates a structured summary of the document with key sections."""
+    if not document_text:
+        return []
+
+    retries = 3
+    delay = 1
+    for i in range(retries):
+        try:
+            prompt = (
+                f"Break down the following financial document into 3-5 key sections. "
+                f"For each section, provide a concise title and a short summary. "
+                f"Respond with a JSON array of objects, where each object has keys 'title', 'summary', and 'content_snippet'. "
+                f"The 'content_snippet' should be a small piece of the original text from that section.\n\n"
+                f"Document: {document_text[:2000]}..." # Use a truncated version for efficiency
+            )
+            model = genai.GenerativeModel(MODEL_NAME)
+            response = model.generate_content(
+                prompt,
+                generation_config={"response_mime_type": "application/json"}
+            )
+            json_str = response.candidates[0].content.parts[0].text
+            return json.loads(json_str)
+        except Exception as e:
+            time.sleep(delay)
+            delay *= 2
+            st.warning(f"Attempt {i+1} failed to generate document summary. Retrying...")
+    return []
+
 # Callback function to set the prompt text
 def set_prompt(prompt_text):
     st.session_state.user_prompt = prompt_text
@@ -207,6 +237,8 @@ if "user_prompt" not in st.session_state:
     st.session_state.user_prompt = ""
 if "dynamic_prompts" not in st.session_state:
     st.session_state.dynamic_prompts = []
+if "document_summary" not in st.session_state:
+    st.session_state.document_summary = []
 
 # Sidebar language selection
 st.sidebar.title("Language")
@@ -228,8 +260,8 @@ col1, col2 = st.columns(2)
 
 with col1:
     uploaded_file = st.file_uploader(
-        strings.get("upload_label", "Upload a PDF, TXT, or HTML file:"),
-        type=strings.get("upload_formats", ["pdf", "txt", "html"]),
+        strings.get("upload_label", "Upload a PDF, TXT, HTML, DOCX, or XLSX file:"),
+        type=strings.get("upload_formats", ["pdf", "txt", "html", "docx", "xlsx"]),
         key="file_uploader"
     )
 
@@ -243,6 +275,8 @@ with col2:
 # Logic to load document text into session state
 if uploaded_file and not st.session_state.is_document_loaded:
     with st.spinner("Parsing document..."):
+        # The parser.py file would need to be updated to handle docx and xlsx files
+        # e.g., using libraries like python-docx and openpyxl.
         st.session_state.document_text = parse_uploaded_file(uploaded_file)
         st.session_state.is_document_loaded = True
         st.success("Document loaded successfully! You can now ask a question.")
@@ -258,13 +292,31 @@ if st.button("Reset Session"):
     st.session_state.analysis_result = ""
     st.session_state.user_prompt = ""
     st.session_state.dynamic_prompts = []
+    st.session_state.document_summary = []
     st.rerun()
 
 st.markdown("---")
 
 # ------------------------------
-#   Analysis Prompt Section
+#   Document Navigation and Analysis Prompt Section
 # ------------------------------
+if st.session_state.is_document_loaded:
+    st.subheader("Document Content and Navigation")
+    with st.expander("View Document and Summary"):
+        # Generate and cache document summary
+        st.session_state.document_summary = generate_document_summary(st.session_state.document_text)
+        
+        # Display clickable summaries
+        if st.session_state.document_summary:
+            st.markdown("##### Key Sections:")
+            for section in st.session_state.document_summary:
+                if st.button(f"**{section['title']}**", key=f"section_btn_{section['title']}"):
+                    st.session_state.document_text = section['content_snippet']
+                    st.info(f"Showing content snippet for: **{section['title']}**")
+        
+        # Display the full document content in a read-only area
+        st.text_area("Full Document Text", value=st.session_state.document_text, height=500, disabled=True)
+
 st.subheader(strings.get("section_2_header", "2. Ask the AI a question about the document"))
 
 # Dynamically generate prompts if a document is loaded
@@ -319,6 +371,21 @@ if st.session_state.analysis_result:
         try:
             df = pd.DataFrame(st.session_state.analysis_result)
             st.dataframe(df, use_container_width=True)
+
+            # Check if the data is suitable for plotting and display a chart
+            if len(df.columns) >= 2:
+                # Attempt to find a numerical column and a non-numerical one
+                numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
+                non_numeric_cols = df.select_dtypes(exclude=['number']).columns.tolist()
+                
+                if numeric_cols and non_numeric_cols:
+                    x_col = non_numeric_cols[0]
+                    y_col = numeric_cols[0]
+                    
+                    st.markdown("##### Data Visualization")
+                    fig = px.bar(df, x=x_col, y=y_col, title=f"{y_col} by {x_col}")
+                    st.plotly_chart(fig, use_container_width=True)
+            
             # Add a download button for the table
             csv = df.to_csv(index=False)
             st.download_button(
