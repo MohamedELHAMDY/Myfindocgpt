@@ -2,7 +2,7 @@
 import streamlit as st
 import os
 import json
-import google.genai as genai
+import google.generativeai as genai
 from src.parser import parse_uploaded_file
 
 # ------------------------------
