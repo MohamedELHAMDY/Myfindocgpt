@@ -366,7 +366,32 @@ if st.session_state.analysis_result:
                     y_col = numeric_cols[0]
 
                     st.markdown("##### Data Visualization")
-                    fig = px.bar(df, x=x_col, y=y_col, title=f"{y_col} by {x_col}")
+                    # Create a more visually appealing bar chart with custom styling
+                    fig = px.bar(
+                        df,
+                        x=x_col,
+                        y=y_col,
+                        title=f"Distribution of {y_col} by {x_col}",
+                        color=y_col,  # Color the bars based on their value
+                        color_continuous_scale=px.colors.sequential.Viridis, # Use a professional color scale
+                        labels={x_col: x_col.replace('_', ' ').title(), y_col: y_col.replace('_', ' ').title()}, # Clean up labels
+                        hover_data=df.columns # Show all data on hover
+                    )
+
+                    # Update the layout for a cleaner, more modern look
+                    fig.update_layout(
+                        title_x=0.5, # Center the title
+                        paper_bgcolor='rgba(0,0,0,0)', # Transparent background
+                        plot_bgcolor='rgba(0,0,0,0)', # Transparent plot area
+                        font=dict(family="Helvetica, Arial, sans-serif", size=14, color="#333"),
+                        xaxis_title=x_col.replace('_', ' ').title(),
+                        yaxis_title=y_col.replace('_', ' ').title(),
+                        xaxis={'categoryorder':'total descending'}, # Sort bars by value
+                        hovermode="x unified",
+                        showlegend=False,
+                    )
+                    
+                    # Display the updated plot
                     st.plotly_chart(fig, use_container_width=True)
 
             # Add a download button for the table
