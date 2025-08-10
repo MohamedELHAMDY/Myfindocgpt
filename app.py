@@ -1,7 +1,7 @@
 import streamlit as st
 import os
 import io
-from google-genai import genai
+from google_genai import genai
 from PyMuPDF import fitz
 from dotenv import load_dotenv
 
