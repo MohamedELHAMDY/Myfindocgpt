@@ -1,4 +1,4 @@
-google-genai>=1.0.0
-python-dotenv
 streamlit
+google-generativeai
+python-dotenv
 PyMuPDF
