@@ -152,8 +152,13 @@ st.markdown("""
 # ======================================================
 
 # Configure Gemini API
-genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-MODEL_NAME = "gemini-1.5-flash"
+if "GOOGLE_API_KEY" in st.secrets:
+    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+    MODEL_NAME = "gemini-1.5-flash"
+else:
+    st.error("Please set the GOOGLE_API_KEY in your Streamlit secrets.")
+    st.stop()
+
 
 def api_call_with_backoff(func, *args, **kwargs):
     """Wrapper to handle API calls with exponential backoff and retries."""
