@@ -1,5 +1,5 @@
 {
-  "app_title": "FinDocGPT: Financial Document Analyst",
+  "app_title": "MyFinDocGPT: Financial Document Analyst",
   "subtitle": "An AI-powered financial analyst that parses, analyzes, and summarizes documents.",
   "section_1_header": "1. Upload a Document or Paste Text",
   "upload_label": "Upload a PDF, TXT, or HTML file:",
