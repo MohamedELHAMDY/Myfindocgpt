@@ -1,3 +1,15 @@
+# The following is the updated requirements.txt file with the missing dependency.
+# This file should be placed in the same directory as app.py.
+
+# requirements.txt
+streamlit
+google-generativeai
+python-dotenv
+PyMuPDF
+streamlit_option_menu
+
+# ---
+
 # app.py - Fully Optimized Version
 import streamlit as st
 import os
@@ -439,39 +451,4 @@ if st.session_state.analysis_result:
                         elif chart_type == "Line Chart":
                             fig = px.line(df, x=x_col, y=y_col, labels={col: col.replace('_', ' ').title() for col in df.columns})
                         elif chart_type == "Scatter Plot":
-                            fig = px.scatter(df, x=x_col, y=y_col, color=y_col, labels={col: col.replace('_', ' ').title() for col in df.columns})
-                        
-                        fig.update_layout(title_text=f"{chart_type} of {y_col} by {x_col}", title_x=0.5, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(family="Poppins", size=14, color="#333"), xaxis={'categoryorder':'total descending'}, hovermode="x unified", showlegend=False)
-                        st.plotly_chart(fig, use_container_width=True)
-                
-                csv = df.to_csv(index=False).encode('utf-8')
-                st.download_button(label="Download as CSV", data=csv, file_name='analysis_results.csv', mime='text/csv')
-            except Exception as e:
-                st.error(f"Could not display the table or chart correctly: {e}")
-                st.markdown(f'<div class="result-container">{st.session_state.analysis_result}</div>', unsafe_allow_html=True)
-    else:
-        with result_container:
-            st.markdown(f'<div class="result-container">{st.session_state.analysis_result}</div>', unsafe_allow_html=True)
-            st.download_button(label="Download as TXT", data=st.session_state.analysis_result.encode('utf-8'), file_name='analysis_results.txt', mime='text/plain')
-
-st.markdown("---")
-
-# ------------------------------
-#   Document Navigation and Content Section
-# ------------------------------
-if st.session_state.is_document_loaded:
-    st.subheader("Document Content and Navigation")
-    with st.expander("View Document and Summary"):
-        st.session_state.document_summary = generate_document_summary(st.session_state.document_text)
-
-        if st.session_state.document_summary:
-            st.markdown("##### Key Sections: <i class='fas fa-clipboard-list'></i>", unsafe_allow_html=True)
-            summary_cols = st.columns(len(st.session_state.document_summary))
-            for i, section in enumerate(st.session_state.document_summary):
-                with summary_cols[i]:
-                    st.markdown(f"**{section['title']}**")
-                    st.write(f"_{section['summary']}_")
-        else:
-            st.info("No summary available. You can view the full document text below.")
-
-        st.text_area("Full Document Text", value=st.session_state.document_text, height=500, disabled=True)
+                            fig = px.scatter(df
