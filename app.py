@@ -7,7 +7,6 @@ from src.parser import parse_uploaded_file # Assumes this file exists for parsin
 import pandas as pd
 import time
 import plotly.express as px
-from streamlit_option_menu import option_menu # Using a library for a better sidebar menu
 
 # ======================================================
 #   Application Configuration
@@ -327,7 +326,7 @@ if "comparison_mode" not in st.session_state: st.session_state.comparison_mode =
 def set_prompt(prompt_text):
     st.session_state.user_prompt = prompt_text
 
-# Sidebar for language selection and navigation
+# Sidebar for language selection
 with st.sidebar:
     st.title("Settings")
     selected_lang_name = st.selectbox("Choose a language:", list(LANGUAGES.values()))
