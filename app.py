@@ -44,7 +44,7 @@ def load_strings(lang_code):
     return {}
 
 # Set Streamlit page configuration for a wide, clean layout
-st.set_page_config(page_title="FinDocGPT", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="MyFinDocGPT", layout="wide", initial_sidebar_state="expanded")
 
 # Custom CSS for a modern and polished look
 st.markdown("""
