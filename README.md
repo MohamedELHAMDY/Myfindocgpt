@@ -1,4 +1,4 @@
-FinDocGPT: AI-Powered Financial Document Analysis
+MyFinDocGPT: AI-Powered Financial Document Analysis
 FinDocGPT is a powerful, web-based application built with Streamlit and the Google Gemini API. It is designed to assist financial analysts and users with a need to quickly understand, summarize, and compare financial documents. By leveraging a large language model, the tool can answer specific questions, extract key figures into tables, and even visualize data.
 
 🌟 Key Features
