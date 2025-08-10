@@ -592,3 +592,37 @@ if st.session_state.is_document_loaded_1 and st.session_state.is_document_loaded
         with st.expander("View Document 2 Summary"):
             st.session_state.document_summary_2 = generate_document_summary(st.session_state.document_text_2)
             st.text_area("Full Document 2 Text", value=st.session_state.document_text_2, height=400, disabled=True)
+# ======================================================
+#   Privacy Policy Section
+# ======================================================
+
+def display_privacy_policy():
+    """Displays a detailed privacy policy in an expander."""
+    st.markdown("---")
+    st.markdown("### Privacy Policy")
+    with st.expander("Read our Privacy Policy"):
+        st.markdown("""
+        **1. Introduction**
+        FinDocGPT is committed to protecting your privacy. This policy explains how we handle your information when you use our application.
+
+        **2. Information We Collect**
+        We do not store or permanently save any documents, text, or prompts you upload or enter into the application. All data is processed in real-time and is discarded immediately after the analysis is complete. We do not collect any personal information, such as your name, email address, or location.
+
+        **3. How We Use Your Information**
+        The text and prompts you provide are sent to the Google Gemini API for the sole purpose of generating an analysis. The content is used to perform the requested task and is not stored or used for any other purpose.
+
+        **4. Third-Party Services**
+        Our application uses the Google Gemini API. Your data is subject to Google's privacy policy when it is transmitted to their services. We are not responsible for the privacy practices of third-party services.
+
+        **5. Data Security**
+        We implement reasonable security measures to protect your information during transmission. However, no method of transmission over the internet or method of electronic storage is 100% secure.
+
+        **6. Changes to This Privacy Policy**
+        We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new policy on this page.
+
+        **7. Contact Us**
+        If you have any questions about this Privacy Policy, please contact us.
+        """)
+
+# Add this line to the end of the script to display the privacy policy
+display_privacy_policy()
