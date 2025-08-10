@@ -10,28 +10,21 @@ load_dotenv()
 
 # Configure the Gemini API key
 try:
-    # Use the os.getenv function to get the API key from the environment variable
-    client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
+    client = genai.Client()
 except Exception as e:
-    # This will now correctly show an error if the API key is not found
+    # It's better to log the error than to print it
     print(f"Error initializing the Gemini API client: {e}")
-    client = None # Set client to None if initialization fails
 
 # The model name is now a parameter to generate_content
 MODEL_NAME = "gemini-1.5-flash"
 
-def analyze_document(document_text: str, user_prompt: str) -> str:
+def analyze_document(document_text: str, user_prompt: str, lang_code: str) -> str:
     """
     Analyzes a given document text based on a user-provided prompt.
-    This function replaces the specific analysis functions for 10-K sections.
+    The response is instructed to be in the language specified by lang_code.
     """
-    # Check if the client was successfully initialized
-    if client is None:
-        return "API Client not initialized. Please ensure your GOOGLE_API_KEY is set correctly in the .env file."
-
-    # The prompt now combines the user's question with the document text.
-    # This makes the analysis generic and adaptable to any user query.
-    prompt = f"{user_prompt}\n\nDocument Text:\n{document_text}"
+    # The prompt now includes a clear instruction for the model to respond in the selected language.
+    prompt = f"The user has requested the response in the language with code '{lang_code}'. Please provide the analysis in this language. Prompt: {user_prompt}\n\nDocument Text:\n{document_text}"
 
     try:
         # Use the client.models.generate_content method
@@ -41,5 +34,5 @@ def analyze_document(document_text: str, user_prompt: str) -> str:
         )
         return response.text
     except Exception as e:
+        # Return a user-friendly error message
         return f"Error calling LLM: {e}"
-

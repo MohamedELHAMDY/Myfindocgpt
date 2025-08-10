@@ -1,110 +1,180 @@
+# app.py
 import streamlit as st
 import os
-import io
-from google_genai import genai
-from PyMuPDF import fitz
+import json
+from src.llm import analyze_document
+from src.parser import parse_uploaded_file
+
+# --- Language & Configuration Setup ---
+# The i18n files are in a 'locales' directory.
+LOCALE_DIR = "locales"
+# Supported languages for the dropdown.
+# The keys correspond to the file names in the 'locales' directory.
+LANGUAGES = {
+    "en": "English",
+    "es": "Español",
+    "ar": "العربية",
+    "fr": "Français",
+    "pt": "Português",
+    "ru": "Русский",
+    "zh": "中文",
+    "ja": "日本語",
+    "hi": "हिन्दी"
+}
+
+def load_strings(lang_code):
+    """Loads a JSON file with strings for the given language code."""
+    file_path = os.path.join(LOCALE_DIR, f"{lang_code}.json")
+    if os.path.exists(file_path):
+        with open(file_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+# Set up the Streamlit page configuration with a wide layout
+st.set_page_config(page_title="FinDocGPT", layout="wide")
+
+# --- Custom CSS for a more appealing look (unchanged) ---
+st.markdown("""
+<style>
+    .reportview-container .main .block-container{
+        max-width: 1200px;
+        padding-top: 2rem;
+        padding-right: 2rem;
+        padding-left: 2rem;
+        padding-bottom: 2rem;
+    }
+    h1 {
+        color: #2c3e50;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-weight: 700;
+        text-align: center;
+        letter-spacing: -1px;
+    }
+    h3 {
+        color: #34495e;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-weight: 600;
+        border-bottom: 2px solid #ecf0f1;
+        padding-bottom: 10px;
+    }
+    .stButton>button {
+        color: white;
+        background-color: #3498db;
+        border-radius: 12px;
+        border: none;
+        padding: 10px 20px;
+        font-size: 16px;
+        font-weight: bold;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    .stButton>button:hover {
+        background-color: #2980b9;
+        transform: translateY(-2px);
+    }
+    .stSpinner > div > div {
+        border-top-color: #3498db !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# --- UI Setup ---
+# Language selection dropdown in the sidebar
+st.sidebar.title("Language")
+selected_lang_name = st.sidebar.selectbox("Choose a language:", list(LANGUAGES.values()))
+selected_lang_code = [key for key, value in LANGUAGES.items() if value == selected_lang_name][0]
+strings = load_strings(selected_lang_code)
+
+# Header
+st.title(strings.get("app_title", "FinDocGPT"))
+st.markdown(f"### {strings.get('subtitle', 'AI-powered financial analyst.')}")
+st.markdown("---")
+
+# --- Document Upload Section ---
+st.subheader(strings.get("section_1_header", "1. Upload a Document or Paste Text"))
+
+col1, col2 = st.columns(2)
+
+with col1:
+    uploaded_file = st.file_uploader(
+        strings.get("upload_label", "Upload a PDF, TXT, or HTML file:"),
+        type=strings.get("upload_formats", ["pdf", "txt", "html"]),
+        key="file_uploader"
+    )
+
+with col2:
+    pasted_text = st.text_area(
+        strings.get("or_text", "Or, paste the document text here:"),
+        height=300,
+        key="text_area"
+    )
+
+document_text = ""
+if uploaded_file:
+    document_text = parse_uploaded_file(uploaded_file)
+elif pasted_text:
+    document_text = pasted_text
+
+st.markdown("---")
+
+# --- Analysis Prompt Section ---
+st.subheader(strings.get("section_2_header", "2. Ask the AI a question about the document"))
+user_prompt = st.text_area(
+    strings.get("prompt_label", "Enter your analysis prompt here:"),
+    placeholder=strings.get("prompt_placeholder", "e.g., 'Summarize the main risks in 3 bullet points.'"),
+    height=100,
+    key="prompt_area"
+)
+
+# --- Analysis Button Section ---
+st.markdown("")  # Add some space
+if st.button(strings.get("analyze_button", "Analyze Document")):
+    if not document_text:
+        st.error(strings.get("error_file_upload", "Please upload a file or paste text to analyze."))
+    elif not user_prompt:
+        st.error(strings.get("error_prompt", "Please enter a prompt for the analysis."))
+    else:
+        with st.spinner(strings.get("loading_message", "Analyzing your document with AI...")):
+            # Pass the user's prompt and the selected language code to the analysis function
+            analysis_result = analyze_document(document_text, user_prompt, selected_lang_code)
+            st.subheader(strings.get("result_header", "✨ Analysis Result"))
+            st.write(analysis_result)
+
+st.markdown("---")
+
+# --- Disclaimer ---
+st.markdown(strings.get("disclaimer", "⚠️ **Disclaimer:** This tool is for demonstration purposes only and should not be used for making financial decisions."))
+
+
+# src/llm.py
+import os
+import json
+from google import genai
+from google.genai import types
 from dotenv import load_dotenv
 
-# --- 1. Set up API Key and LLM Client ---
-# Load environment variables from .env file for local development.
-# This is handled automatically by Streamlit in the cloud via secrets.toml.
 load_dotenv()
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
-# Use st.secrets for Streamlit Cloud deployment.
-# This is the recommended and secure way to handle secrets.
-if not GOOGLE_API_KEY:
-    try:
-        GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
-    except KeyError:
-        st.error("API Key not found. Please set it in your Streamlit secrets or .env file.")
-        st.stop() # Stop the app if the API key is not available
-
-# Configure the Gemini API client
 try:
-    genai.configure(api_key=GOOGLE_API_KEY)
-    client = genai.GenerativeModel("gemini-1.5-flash")
+    client = genai.Client()
 except Exception as e:
-    st.error(f"Error initializing the Gemini API client: {e}")
-    st.stop() # Stop the app if the client can't be initialized
+    print(f"Error initializing the Gemini API client: {e}")
 
+MODEL_NAME = "gemini-1.5-flash"
 
-# --- 2. Define the core logic functions ---
-def extract_text_from_pdf(pdf_file) -> str:
+def analyze_document(document_text: str, user_prompt: str, lang_code: str) -> str:
     """
-    Extracts text from a PDF file uploaded via Streamlit.
-    It uses PyMuPDF (fitz) for efficient text extraction.
+    Analyzes a given document text based on a user-provided prompt.
+    The response is instructed to be in the language specified by lang_code.
     """
-    text = ""
+    # The prompt now includes a clear instruction for the model to respond in the selected language.
+    prompt = f"The user has requested the response in the language with code '{lang_code}'. Please provide the analysis in this language. Prompt: {user_prompt}\n\nDocument Text:\n{document_text}"
+
     try:
-        # Re-open the file stream to handle multiple reads
-        doc = fitz.open(stream=pdf_file.read(), filetype="pdf")
-        for page in doc:
-            text += page.get_text()
-        doc.close()
-    except Exception as e:
-        st.error(f"Error extracting text from PDF: {e}")
-        st.stop()
-    return text
-
-@st.cache_data
-def analyze_document(document_text: str, user_prompt: str) -> str:
-    """
-    Analyzes a given document text based on a user-provided prompt using the Gemini API.
-    The @st.cache_data decorator caches the results, preventing redundant API calls
-    and speeding up the application.
-    """
-    prompt = f"{user_prompt}\n\nDocument Text:\n{document_text}"
-    try:
-        response = client.generate_content(prompt)
+        response = client.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt
+        )
         return response.text
     except Exception as e:
-        # Return a more informative error message to the user
-        return f"Error calling LLM: {e}. Please try again or with a different prompt."
-
-
-# --- 3. Build the Streamlit App UI ---
-def main():
-    """
-    Main function to build the Streamlit application interface.
-    """
-    st.set_page_config(page_title="FinDocGPT", layout="wide")
-    st.title("FinDocGPT: AI Financial Document Analyzer")
-    st.markdown("An AI-powered financial analyst that can parse, analyze, and summarize 10-K filings and other financial documents.")
-
-    uploaded_file = st.file_uploader("Upload a 10-K PDF file", type=["pdf"])
-
-    if uploaded_file:
-        with st.spinner("Extracting text from PDF..."):
-            # The file is passed to the extraction function
-            document_text = extract_text_from_pdf(uploaded_file)
-        
-        st.success("Text extraction complete!")
-
-        # Pre-defined prompts for user convenience
-        analysis_options = {
-            "Summarize Risk Factors": "Summarize the key risk factors and future outlook mentioned in the document.",
-            "Extract Key Financial Metrics": "Identify and list the key financial metrics (e.g., revenue, net income, cash flow, debt) from the document.",
-            "Analyze Management Discussion": "Provide a high-level summary of the management's discussion and analysis (MD&A) section.",
-            "Custom Query": "Write your own prompt below."
-        }
-        
-        analysis_type = st.selectbox("Select an analysis type:", list(analysis_options.keys()))
-
-        user_prompt = ""
-        if analysis_type == "Custom Query":
-            user_prompt = st.text_area("Enter your custom analysis prompt:", height=150)
-        else:
-            user_prompt = analysis_options[analysis_type]
-
-        if st.button("Analyze Document", use_container_width=True):
-            if user_prompt:
-                with st.spinner("Analyzing document with Gemini..."):
-                    result = analyze_document(document_text, user_prompt)
-                    st.subheader("Analysis Result:")
-                    st.write(result)
-            else:
-                st.warning("Please select a predefined analysis or enter a custom prompt.")
-
-if __name__ == "__main__":
-    main()
+        return f"Error calling LLM: {e}"
